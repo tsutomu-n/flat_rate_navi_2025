@@ -1,0 +1,17 @@
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# エディタやIDEの設定ファイル
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 一時ファイル
+*.swp
+*.swo
+*.tmp
+
+# ログファイル
+*.log

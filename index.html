@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏠 住宅ローン返済シミュレーション（フラット20・フラット35） - 金利カスタム・拡張版</title>
+  <style>
+    /* 基本レイアウト・色設定 */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e0f7fa, #e8f5e9);
+      margin: 0;
+      padding: 0;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      margin: 30px;
+      max-width: 750px;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      animation: fadeIn 0.5s ease-out;
+      position: relative;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.2em;
+      margin-bottom: 25px;
+      color: #00bcd4;
+    }
+    h1 span {
+      display: block;
+      font-size: 0.8em;
+      color: #777;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+    input, .rate-input {
+      width: calc(100% - 22px);
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1em;
+    }
+    .rate-input {
+      width: 80px;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    input.invalid {
+      border-color: red;
+      background-color: #ffe6e6;
+    }
+    .error {
+      color: #d32f2f;
+      font-weight: bold;
+      margin-top: 15px;
+      background-color: #ffebee;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #ef9a9a;
+      animation: shake 0.3s ease-in-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .result {
+      margin-top: 25px;
+      display: none;  /* 初期状態では非表示 */
+      background-color: #f8f8f8;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .result h2 {
+      color: #009688;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.6em;
+      text-align: center;
+    }
+    .note {
+      font-size: 0.6em;
+      color: #777;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .button-container {
+      text-align: center;
+      margin-top: 30px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #00bcd4;
+      color: #fff;
+      font-size: 1.1em;
+      cursor: pointer;
+      margin: 10px 8px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #00acc1;
+    }
+    /* 金利設定オプションボタン（画面上部右端、控えめ、10pxフォント） */
+    .rate-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 10px;
+      background-color: #00bcd4;
+      color: #ffffff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      opacity: 0.9;
+    }
+    .rate-toggle:hover {
+      background-color: #0097a7;
+      opacity: 1;
+    }
+    .help-toggle {
+      position: fixed;
+      top: 10px;
+      right: 80px;
+      font-size: 10px;
+      background-color: #4caf50;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      opacity: 0.9;
+    }
+    .help-toggle:hover {
+      background-color: #388e3c;
+      opacity: 1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 1em;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #b2dfdb;
+      color: #fff;
+      font-weight: bold;
+    }
+    .toggle-detail {
+      background: none;
+      border: none;
+      color: #1976d2;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.9em;
+      margin-top: 15px;
+      display: block;
+      text-align: center;
+    }
+    .detail-schedule {
+      display: none;
+      margin-top: 20px;
+    }
+    .download-csv {
+      margin: 10px auto;
+      display: block;
+      padding: 8px 12px;
+      font-size: 0.9em;
+      background-color: #9e9e9e;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .download-csv:hover {
+      background-color: #757575;
+    }
+    .loading-message {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #555;
+    }
+    .bar-chart {
+      width: 100%;
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+    }
+    .bar-container {
+      width: 45%;
+      text-align: center;
+    }
+    .bar {
+      background-color: #4caf50;
+      color: white;
+      padding: 10px 0;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .bar-label {
+      margin-top: 5px;
+      font-weight: bold;
+    }
+    .comparison-table td.highlight {
+      background-color: #fffde7;
+      font-weight: bold;
+    }
+    /* 金利設定セクション */
+    .rate-setting {
+      margin-top: 20px;
+      border-top: 1px dashed #ccc;
+      padding-top: 20px;
+      display: none;
+    }
+    .rate-setting h3 {
+      font-size: 1.2em;
+      color: #555;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .rate-input-group {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .rate-label {
+      font-weight: normal;
+      margin-right: 5px;
+      color: #777;
+    }
+    /* 固定金利ローンの基礎知識セクション */
+    .loan-basics {
+      margin: 1em 0;
+      padding: 12px;
+      font-size: 0.8em;
+      line-height: 1.4;
+    }
+    .loan-basics h2 {
+      font-size: 1em;
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    .loan-basics p {
+      margin: 6px 0;
+    }
+    .loan-basics strong {
+      color: #00838f;
+    }
+    @media screen and (max-width: 768px) {
+      .container {
+        margin: 15px;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+      label {
+        font-size: 0.95em;
+      }
+      input, .rate-input {
+        font-size: 0.95em;
+      }
+      button {
+        font-size: 1em;
+        padding: 10px 15px;
+      }
+      .result h2 {
+        font-size: 1.4em;
+      }
+      .note, .local-url {
+        font-size: 0.85em;
+      }
+      table, th, td {
+        font-size: 0.85em;
+        padding: 8px;
+      }
+      .rate-setting h3 {
+        font-size: 1.1em;
+      }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 800px;
+      border-radius: 8px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 金利設定オプションボタン（常に画面上部右端に表示） -->
+  <button class="rate-toggle" onclick="toggleRateSetting()" id="rateToggleBtn">✍️ 金利設定</button>
+  <button class="help-toggle" onclick="toggleHelpModal()" id="helpToggleBtn">❓ 使い方</button>
+  
+  <div class="container">
+    <h1>🏠 住宅ローンシミュレーション<span>フラット20・フラット35</span></h1>
+    <!-- ユーザー入力セクション -->
+    <p>
+      <label for="purchasePrice">💰 物件購入価格（万円）:</label>
+      <input id="purchasePrice" type="number" value="4000" placeholder="4000" oninput="validateInputs()">
+    </p>
+    <p>
+      <label for="downPayment">💸 頭金（万円）:</label>
+      <input id="downPayment" type="number" value="300" placeholder="300" oninput="validateInputs()">
+    </p>
+    <p>
+      <label for="additionalPayment">📈 追加返済額（月々、万円）:</label>
+      <input id="additionalPayment" type="number" value="10" placeholder="10" oninput="validateInputs()">
+    </p>
+    <p>
+      <label for="additionalStartYear">追加返済開始 (年後):</label>
+      <input id="additionalStartYear" type="number" value="10" placeholder="10" oninput="validateInputs()">
+    </p>
+    
+    <!-- 金利設定オプションセクション -->
+    <div class="rate-setting" id="rateSetting">
+      <h3>✍️ 金利を上書きする（任意）</h3>
+      <p class="note" style="font-size: 0.8em; margin-top: 0;">
+        ※ 金利未入力の場合は、2025年3月時点の予測金利が適用されます。
+      </p>
+      <div class="rate-input-group">
+        <label for="customRateFlat20" class="rate-label">フラット20 金利:</label>
+        <input type="number" id="customRateFlat20" class="rate-input" placeholder="1.720" step="0.001"> ％
+      </div>
+      <div class="rate-input-group">
+        <label for="customRateFlat35" class="rate-label">フラット35 金利:</label>
+        <input type="number" id="customRateFlat35" class="rate-input" placeholder="2.110" step="0.001"> ％
+      </div>
+    </div>
+    
+    <div class="button-container">
+      <button onclick="runSimulations()">🔍 シミュレーション実行</button>
+    </div>
+    <div id="errorMessage" class="error" style="display:none;"></div>
+    <div id="loadingMessage" class="loading-message" style="display:none;">計算中... しばらくお待ちください</div>
+    <div id="resultFlat20" class="result"></div>
+    <div id="resultFlat35" class="result"></div>
+    
+    <!-- 固定金利ローン基礎知識セクション -->
+    <section class="loan-basics">
+        <h2>固定金利住宅ローンの基本</h2>
+        <p>
+          <strong>フラット20</strong><br>
+          返済期間：15～20年<br>
+          メリット：短期間で完済でき、総支払利息が少ない<br>
+          注意点：毎月の返済額が高い
+        </p>
+        <p>
+          <strong>フラット35</strong><br>
+          返済期間：21～35年<br>
+          メリット：毎月の返済が安定し、ライフプランが立てやすい<br>
+          注意点：頭金や団体信用生命保険（団信）の条件により実質条件が変動する
+        </p>
+        <p>
+          <strong>共通点</strong><br>
+          両者とも全期間固定金利で、金利変動リスクがなく、事前のシミュレーションが重要です。
+        </p>
+      </section>
+      <p class="note" style="line-height: 1.8; letter-spacing: 0.05em; margin: 1em 0;">
+        ※ シミュレーションは、フラット20を20年固定、フラット35を35年固定で行っています。<br>
+        なお、これらの結果はあくまで概算です。最終的な借入の決定にあたっては、必ず金融機関や専門家にご相談ください。
+      </p>
+  </div>
+  
+  <!-- ===============================
+       JavaScript - ユーティリティ・計算ロジック
+       =============================== -->
+  <script>
+    // 定数定義
+    const MAX_REPAYMENT_MONTHS = 600;
+    const DEFAULT_ANNUAL_RATE_FLAT20 = 0.01720; // 2025年3月時点予測：1.720%
+    const DEFAULT_ANNUAL_RATE_FLAT35 = 0.02110; // 2025年3月時点予測：2.110%
+    const FIXED_TERM_YEARS_FLAT20 = 20;
+    const FIXED_TERM_YEARS_FLAT35 = 35;
+    const MONTHS_PER_YEAR = 12;
+    const MAX_PURCHASE_PRICE = 100000;
+    const MAX_DOWN_PAYMENT = 100000;
+    let roundingPrecision = 4; // 小数点以下4桁
+
+    // 数値丸めユーティリティ
+    function roundTo(num, precision) {
+      const factor = 10 ** precision;
+      return Math.round(num * factor) / factor;
+    }
+
+    // 毎月返済額（元利均等返済）の計算
+    function calculateMonthlyPayment(principal, monthlyRate, totalMonths) {
+      return (monthlyRate * principal) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+    }
+
+    // 指定期間後の残高を計算
+    function calculateBalance(principal, monthlyRate, monthlyPayment, months) {
+      let balance = principal;
+      for (let i = 1; i <= months; i++) {
+        const interest = roundTo(balance * monthlyRate, roundingPrecision);
+        const principalPayment = roundTo(monthlyPayment - interest, roundingPrecision);
+        balance = roundTo(balance - principalPayment, roundingPrecision);
+      }
+      return balance;
+    }
+
+    // simulatePostAdditional を非同期に実行（100回ごとにチャンク処理）
+    function simulatePostAdditionalAsync(startingBalance, monthlyRate, baseMonthlyPayment, additionalPayment) {
+      return new Promise((resolve) => {
+        let balance = startingBalance;
+        let monthsCount = 0;
+        let totalMonthlyPayment = baseMonthlyPayment + additionalPayment;
+        const chunkSize = 100;
+        function processChunk() {
+          for (let i = 0; i < chunkSize && balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS; i++) {
+            const interest = roundTo(balance * monthlyRate, roundingPrecision);
+            let principalPayment = roundTo(totalMonthlyPayment - interest, roundingPrecision);
+            if (principalPayment > balance) {
+              principalPayment = balance;
+              totalMonthlyPayment = interest + principalPayment;
+            }
+            balance = roundTo(balance - principalPayment, roundingPrecision);
+            monthsCount++;
+          }
+          if (balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS) {
+            setTimeout(processChunk, 0);
+          } else {
+            resolve(monthsCount);
+          }
+        }
+        processChunk();
+      });
+    }
+    
+    // ===============================
+    // DOM操作関連ユーティリティ
+    // ===============================
+    
+    function showError(message) {
+      const errorElement = document.getElementById("errorMessage");
+      errorElement.innerHTML = message;
+      errorElement.style.display = "block";
+    }
+    
+    function validateInputs() {
+      const purchasePriceVal = document.getElementById("purchasePrice").value;
+      const downPaymentVal = document.getElementById("downPayment").value;
+      const additionalPaymentVal = document.getElementById("additionalPayment").value;
+      const additionalStartYearVal = document.getElementById("additionalStartYear").value;
+      let errorMsg = "";
+    
+      if (purchasePriceVal === "") {
+        errorMsg += "物件購入価格を入力してください。<br>";
+      } else if (isNaN(purchasePriceVal)) {
+        errorMsg += "物件購入価格は数値を入力してください。<br>";
+      } else if (Number(purchasePriceVal) <= 0) {
+        errorMsg += "物件購入価格は1万円以上の正の数で入力してください。<br>";
+      } else if (Number(purchasePriceVal) > MAX_PURCHASE_PRICE) {
+        errorMsg += `物件購入価格は${MAX_PURCHASE_PRICE}万円以下で入力してください。<br>`;
+      }
+    
+      if (downPaymentVal === "") {
+        errorMsg += "頭金を入力してください。<br>";
+      } else if (isNaN(downPaymentVal)) {
+        errorMsg += "頭金は数値を入力してください。<br>";
+      } else if (Number(downPaymentVal) < 0) {
+        errorMsg += "頭金は0以上の数値で入力してください。<br>";
+      } else if (Number(downPaymentVal) > MAX_DOWN_PAYMENT) {
+        errorMsg += `頭金は${MAX_DOWN_PAYMENT}万円以下で入力してください。<br>`;
+      } else if (purchasePriceVal !== "" && !isNaN(purchasePriceVal) && Number(downPaymentVal) > Number(purchasePriceVal)) {
+        errorMsg += "頭金は物件購入価格以下にしてください。<br>";
+      }
+    
+      if (additionalPaymentVal === "") {
+        errorMsg += "追加返済額を入力してください。<br>";
+      } else if (isNaN(additionalPaymentVal)) {
+        errorMsg += "追加返済額は数値を入力してください。<br>";
+      } else if (Number(additionalPaymentVal) < 0) {
+        errorMsg += "追加返済額は0以上の数値で入力してください。<br>";
+      }
+    
+      if (additionalStartYearVal === "") {
+        errorMsg += "追加返済開始 (年後) を入力してください。<br>";
+      } else if (isNaN(additionalStartYearVal)) {
+        errorMsg += "追加返済開始 (年後) は数値を入力してください。<br>";
+      } else if (Number(additionalStartYearVal) < 0) {
+        errorMsg += "追加返済開始 (年後) は0以上の数値で入力してください。<br>";
+      }
+      
+      const errorElement = document.getElementById("errorMessage");
+      errorElement.innerHTML = errorMsg;
+      errorElement.style.display = errorMsg ? "block" : "none";
+      return errorMsg === "";
+    }
+    
+    // ===============================
+    // DOM操作：シミュレーション結果のレンダリング
+    // ===============================
+    
+    async function renderSimulationResults(principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, fixedTermYears) {
+      const additionalStartMonths = additionalStartYear * MONTHS_PER_YEAR;
+      const balanceAtAdditionalStart = calculateBalance(principal, monthlyRate, monthlyPayment, additionalStartMonths);
+      const additionalMonths = await simulatePostAdditionalAsync(balanceAtAdditionalStart, monthlyRate, monthlyPayment, additionalPayment);
+      const totalRepaymentMonths = additionalStartMonths + additionalMonths;
+      const totalPayment = roundTo((monthlyPayment * additionalStartMonths) + ((monthlyPayment + additionalPayment) * additionalMonths), roundingPrecision);
+      const totalInterest = roundTo(totalPayment - principal, roundingPrecision);
+      return { totalRepaymentMonths, totalPayment, totalInterest };
+    }
+    
+    // simulatePostAdditional を非同期処理（チャンク分割）に変更
+    function simulatePostAdditionalAsync(startingBalance, monthlyRate, baseMonthlyPayment, additionalPayment) {
+      return new Promise((resolve) => {
+        let balance = startingBalance;
+        let monthsCount = 0;
+        let totalMonthlyPayment = baseMonthlyPayment + additionalPayment;
+        const chunkSize = 100;
+        function processChunk() {
+          for (let i = 0; i < chunkSize && balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS; i++) {
+            const interest = roundTo(balance * monthlyRate, roundingPrecision);
+            let principalPayment = roundTo(totalMonthlyPayment - interest, roundingPrecision);
+            if (principalPayment > balance) {
+              principalPayment = balance;
+              totalMonthlyPayment = interest + principalPayment;
+            }
+            balance = roundTo(balance - principalPayment, roundingPrecision);
+            monthsCount++;
+          }
+          if (balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS) {
+            setTimeout(processChunk, 0);
+          } else {
+            resolve(monthsCount);
+          }
+        }
+        processChunk();
+      });
+    }
+    
+    function displayResultsInDOM(resultId, principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, totalRepaymentMonths, totalPayment, totalInterest, additionalStartWarning) {
+      const fixedTermYears = (resultId === "resultFlat20") ? FIXED_TERM_YEARS_FLAT20 : FIXED_TERM_YEARS_FLAT35;
+      const resultDiv = document.getElementById(resultId);
+      resultDiv.innerHTML = `
+        <h2>【フラット${fixedTermYears}】シミュレーション結果</h2>
+        <div class="bar-chart">
+          <div class="bar-container">
+            <div class="bar" style="height: ${totalPayment / 40}px;">${totalPayment.toFixed(1)} 万円</div>
+            <div class="bar-label">返済総額</div>
+          </div>
+          <div class="bar-container">
+            <div class="bar" style="height: ${totalInterest / 40}px;">${totalInterest.toFixed(1)} 万円</div>
+            <div class="bar-label">利息総額</div>
+          </div>
+        </div>
+        <table class="comparison-table">
+          <tr><th>項目</th><th>値</th></tr>
+          <tr><td>初期借入額</td><td>${principal.toFixed(1)} 万円</td></tr>
+          <tr><td>固定金利（2025年3月時点予測）</td><td class="highlight">${fixedTermYears === FIXED_TERM_YEARS_FLAT20 ? "1.720％" : "2.110％"}</td></tr>
+          <tr><td>毎月返済額（基本）</td><td class="highlight">${monthlyPayment.toFixed(1)} 万円</td></tr>
+          <tr><td>追加返済開始</td><td>${additionalStartYear} 年後</td></tr>
+          <tr><td>追加返済（月額）</td><td>${additionalPayment.toFixed(1)} 万円</td></tr>
+          <tr><td>完済までの総月数</td><td>${totalRepaymentMonths} ヶ月 (${(totalRepaymentMonths / 12).toFixed(1)} 年)</td></tr>
+          <tr style="border-top: 2px solid #ddd;"><td><b>返済総額（概算）</b></td><td class="highlight"><b>${totalPayment.toFixed(1)} 万円</b></td></tr>
+          <tr style="border-bottom: 2px solid #ddd;"><td><b>利息総額（概算）</b></td><td class="highlight"><b>${totalInterest.toFixed(1)} 万円</b></td></tr>
+        </table>
+        ${additionalStartWarning}
+        <button class="toggle-detail" onclick="toggleDetail('${resultId}-detail')">詳細スケジュールを表示/非表示</button>
+        <button class="download-csv" onclick="downloadCSV('${resultId}-detail')">CSVダウンロード</button>
+        <div id="${resultId}-detail" class="detail-schedule"></div>`;
+      resultDiv.style.display = "block";
+      generateSchedule(principal, monthlyRate, monthlyPayment, additionalPayment, fixedTermYears, totalRepaymentMonths, `${resultId}-detail`);
+    }
+    
+    function displayResults(resultId, principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, totalRepaymentMonths, totalPayment, totalInterest) {
+      const fixedTermYears = (resultId === "resultFlat20") ? FIXED_TERM_YEARS_FLAT20 : FIXED_TERM_YEARS_FLAT35;
+      let additionalStartWarning = "";
+      if (additionalStartYear > fixedTermYears) {
+        additionalStartWarning = `<p class="note" style="color:#d32f2f;">※ 追加返済開始年が借入期間を超えています。${fixedTermYears}年以内で計算しています。</p>`;
+      }
+      displayResultsInDOM(resultId, principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, totalRepaymentMonths, totalPayment, totalInterest, additionalStartWarning);
+    }
+    
+    // ===============================
+    // DOM操作：シミュレーション結果のレンダリング（非同期処理対応）
+    // ===============================
+    
+    async function renderSimulationResults(principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, fixedTermYears) {
+      const additionalStartMonths = additionalStartYear * MONTHS_PER_YEAR;
+      const balanceAtAdditionalStart = calculateBalance(principal, monthlyRate, monthlyPayment, additionalStartMonths);
+      const additionalMonths = await simulatePostAdditionalAsync(balanceAtAdditionalStart, monthlyRate, monthlyPayment, additionalPayment);
+      const totalRepaymentMonths = additionalStartMonths + additionalMonths;
+      const totalPayment = roundTo((monthlyPayment * additionalStartMonths) + ((monthlyPayment + additionalPayment) * additionalMonths), roundingPrecision);
+      const totalInterest = roundTo(totalPayment - principal, roundingPrecision);
+      return { totalRepaymentMonths, totalPayment, totalInterest };
+    }
+    
+    // simulatePostAdditional を非同期処理（チャンク分割）に変更
+    function simulatePostAdditionalAsync(startingBalance, monthlyRate, baseMonthlyPayment, additionalPayment) {
+      return new Promise((resolve) => {
+        let balance = startingBalance;
+        let monthsCount = 0;
+        let totalMonthlyPayment = baseMonthlyPayment + additionalPayment;
+        const chunkSize = 100;
+        function processChunk() {
+          for (let i = 0; i < chunkSize && balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS; i++) {
+            const interest = roundTo(balance * monthlyRate, roundingPrecision);
+            let principalPayment = roundTo(totalMonthlyPayment - interest, roundingPrecision);
+            if (principalPayment > balance) {
+              principalPayment = balance;
+              totalMonthlyPayment = interest + principalPayment;
+            }
+            balance = roundTo(balance - principalPayment, roundingPrecision);
+            monthsCount++;
+          }
+          if (balance > 0 && monthsCount < MAX_REPAYMENT_MONTHS) {
+            setTimeout(processChunk, 0);
+          } else {
+            resolve(monthsCount);
+          }
+        }
+        processChunk();
+      });
+    }
+    
+    function generateSchedule(principal, monthlyRate, monthlyPayment, additionalPayment, fixedTermYears, totalRepaymentMonths, detailId) {
+      const detail = document.getElementById(detailId);
+      if (!detail) return;
+
+      let tableHTML = `
+        <table>
+          <tr>
+            <th>Year</th>
+            <th>Month</th>
+            <th>Payment (¥)</th>
+            <th>Principal (¥)</th>
+            <th>Interest (¥)</th>
+            <th>Balance (¥)</th>
+          </tr>
+      `;
+
+      let balance = principal;
+      let totalInterest = 0;
+      let year = 1;
+      let month = 1;
+
+      while (balance > 0 && month <= totalRepaymentMonths) {
+        const monthlyInterest = balance * monthlyRate;
+        let actualPayment = monthlyPayment;
+        
+        if (balance < monthlyPayment) {
+          actualPayment = balance + monthlyInterest;
+        }
+        
+        const principalPayment = actualPayment - monthlyInterest;
+        balance = Math.max(0, balance - principalPayment);
+        totalInterest += monthlyInterest;
+
+        tableHTML += `
+          <tr>
+            <td>${year}</td>
+            <td>${month}</td>
+            <td>¥${Math.round(actualPayment).toLocaleString()}</td>
+            <td>¥${Math.round(principalPayment).toLocaleString()}</td>
+            <td>¥${Math.round(monthlyInterest).toLocaleString()}</td>
+            <td>¥${Math.round(balance).toLocaleString()}</td>
+          </tr>
+        `;
+
+        month++;
+        if (month > 12) {
+          month = 1;
+          year++;
+        }
+      }
+
+      tableHTML += '</table>';
+      detail.innerHTML = tableHTML;
+    }
+    
+    // ===============================
+    // イベントハンドラー・シミュレーション実行
+    // ===============================
+    
+    async function runSimulationForPlan(annualRate, fixedTermYears, resultId) {
+      const purchasePrice = Number(document.getElementById("purchasePrice").value);
+      const downPayment = Number(document.getElementById("downPayment").value);
+      const additionalPayment = Number(document.getElementById("additionalPayment").value);
+      const additionalStartYear = Number(document.getElementById("additionalStartYear").value) || 10;
+      const principal = purchasePrice - downPayment;
+      const monthlyRate = annualRate / MONTHS_PER_YEAR;
+      const totalMonths = fixedTermYears * MONTHS_PER_YEAR;
+      const monthlyPayment = calculateMonthlyPayment(principal, monthlyRate, totalMonths);
+      
+      const { totalRepaymentMonths, totalPayment, totalInterest } = await renderSimulationResults(principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, fixedTermYears);
+      displayResults(resultId, principal, monthlyRate, monthlyPayment, additionalPayment, additionalStartYear, totalRepaymentMonths, totalPayment, totalInterest);
+    }
+    
+    async function runSimulationFlat20() {
+      const customRate20 = document.getElementById("customRateFlat20").value;
+      const annualRateFlat20 = customRate20 ? Number(customRate20) / 100 : DEFAULT_ANNUAL_RATE_FLAT20;
+      await runSimulationForPlan(annualRateFlat20, FIXED_TERM_YEARS_FLAT20, "resultFlat20");
+    }
+    
+    async function runSimulationFlat35() {
+      const customRate35 = document.getElementById("customRateFlat35").value;
+      const annualRateFlat35 = customRate35 ? Number(customRate35) / 100 : DEFAULT_ANNUAL_RATE_FLAT35;
+      await runSimulationForPlan(annualRateFlat35, FIXED_TERM_YEARS_FLAT35, "resultFlat35");
+    }
+    
+    async function runSimulations() {
+      if (!validateInputs()) return;
+      document.getElementById("errorMessage").style.display = "none";
+      document.getElementById("resultFlat20").style.display = "none";
+      document.getElementById("resultFlat35").style.display = "none";
+      document.getElementById("loadingMessage").style.display = "block";
+      setTimeout(async () => {
+        await runSimulationFlat20();
+        await runSimulationFlat35();
+        document.getElementById("loadingMessage").style.display = "none";
+      }, 200);
+    }
+    
+    // ===============================
+    // ユーザー操作：詳細スケジュール表示、CSVダウンロード、金利設定切替
+    // ===============================
+    
+    function toggleDetail(detailId) {
+      const detailDiv = document.getElementById(detailId);
+      detailDiv.style.display = (detailDiv.style.display === "none" || detailDiv.style.display === "") ? "block" : "none";
+    }
+    
+    function toggleRateSetting() {
+      const rateSettingDiv = document.getElementById("rateSetting");
+      const rateToggleBtn = document.getElementById("rateToggleBtn");
+      if (rateSettingDiv.style.display === "none" || rateSettingDiv.style.display === "") {
+        rateSettingDiv.style.display = "block";
+        rateToggleBtn.textContent = "☑️ 金利設定を閉じる";
+        rateSettingDiv.scrollIntoView({ behavior: "smooth" });
+      } else {
+        rateSettingDiv.style.display = "none";
+        rateToggleBtn.textContent = "✍️ 金利設定";
+        document.querySelector('.container').scrollIntoView({ behavior: "smooth" });
+      }
+    }
+    
+    function toggleHelpModal() {
+      var modal = document.getElementById('helpModal');
+      modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+    }
+    
+    function downloadCSV(detailId) {
+      const detail = document.getElementById(detailId);
+      if (!detail) return;
+
+      const table = detail.querySelector('table');
+      if (!table) return;
+
+      let csvContent = 'Year,Month,Payment,Principal,Interest,Balance\n';  
+
+      const rows = table.querySelectorAll('tr');
+      rows.forEach((row, index) => {
+        if (index === 0) return; // Skip header row
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 5) {
+          // Convert Japanese numbers to English and remove commas
+          const year = cells[0].textContent.replace('年', '');
+          const month = cells[1].textContent.replace('月', '');
+          const payment = cells[2].textContent.replace(/[¥,]/g, '');
+          const principal = cells[3].textContent.replace(/[¥,]/g, '');
+          const interest = cells[4].textContent.replace(/[¥,]/g, '');
+          const balance = cells[5].textContent.replace(/[¥,]/g, '');
+          
+          csvContent += `${year},${month},${payment},${principal},${interest},${balance}\n`;
+        }
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const timestamp = new Date().toISOString().slice(0,10);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `loan_schedule_${detailId}_${timestamp}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    // ===============================
+    // ページロード時処理（localStorageから金利読み込み）
+    // ===============================
+    
+    window.addEventListener("load", () => {
+      const storedRate20 = localStorage.getItem("customRateFlat20");
+      const storedRate35 = localStorage.getItem("customRateFlat35");
+      if (storedRate20) {
+        document.getElementById("customRateFlat20").value = storedRate20;
+      }
+      if (storedRate35) {
+        document.getElementById("customRateFlat35").value = storedRate35;
+      }
+    });
+  </script>
+</body>
+
+<!-- ヘルプモーダルの追加 -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="toggleHelpModal()">&times;</span>
+    <div id="helpContent">
+      <h1>エンドユーザー向け利用方法ガイド</h1>
+      <p>このドキュメントは、フラット20・フラット35の住宅ローン返済シミュレーションアプリケーションのエンドユーザー向けの使用方法を詳述しています。</p>
+      <h2>はじめに</h2>
+      <p>本アプリケーションは、住宅ローンの返済計画、金利計算、返済シミュレーションなどの機能を提供します。フラット20（20年固定）とフラット35（35年固定）の比較シミュレーションが可能で、追加返済のシミュレーションにも対応しています。</p>
+      <h2>画面構成</h2>
+      <ul>
+        <li><strong>物件購入価格入力</strong>: 物件の購入金額（例: 4000万円）</li>
+        <li><strong>頭金入力</strong>: 物件購入時の頭金（例: 300万円）</li>
+        <li><strong>追加返済設定</strong>: 追加返済額（月々、例: 10万円）と追加返済開始時期（例: 10年後）</li>
+        <li><strong>金利設定ボタン</strong>: 右上の「✍️ 金利設定」ボタンで金利をカスタマイズ</li>
+        <li><strong>シミュレーション結果表示</strong>: フラット20とフラット35の比較結果を表示</li>
+      </ul>
+      <h2>操作手順</h2>
+      <ol>
+        <li>基本情報の入力（物件購入価格、頭金、追加返済額、追加返済開始年数）</li>
+        <li>金利設定（任意）：デフォルトはフラット20 1.720%、フラット35 2.110%</li>
+        <li>「🔍 シミュレーション実行」ボタンをクリックしてシミュレーションを開始</li>
+        <li>詳細結果の確認とCSVダウンロード</li>
+      </ol>
+      <h2>注意事項</h2>
+      <ul>
+        <li>シミュレーション結果は概算です。最終決定は専門家にご相談ください。</li>
+        <li>入力エラー時はエラーメッセージが表示されますので、正確な値を入力してください。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</html>
